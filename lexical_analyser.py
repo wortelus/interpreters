@@ -10,6 +10,7 @@ TokenType = Enum("TYPE", ["NUM",
                           "DIV",
                           "MOD",
                           "ID",
+                          "EOL"
                           ])
 
 
@@ -26,6 +27,87 @@ class Token:
 
     def __repr__(self):
         return self.__str__()
+
+
+class Tokenizer(object):
+    def __init__(self, expr):
+        self.cmd = 0
+        self.number = ''
+        self.tokens = []
+
+        self.unknown_kw = ""
+        self.keywords = {
+            "div": 0,
+            "mod": 0,
+        }
+
+        self.i = 0
+        self.expr = expr
+
+    def reset_keywords(self):
+        if self.unknown_kw != "" and self.unknown_kw not in self.keywords.keys():
+            tokens.append(Token('ID', self.unknown_kw))
+            self.unknown_kw = ""
+        for k in self.keywords.keys():
+            self.keywords[k] = 0
+
+    def next(self):
+        if self.i >= len(self.expr):
+            return Token('EOL', None)
+
+        char = self.expr[self.i]
+
+        if self.cmd == 2:
+            if char == '\n':
+                self.cmd = 0
+            return
+        elif char == '/':
+            if self.cmd == 1:
+                self.cmd += 1
+                tokens.pop()
+                return
+            else:
+                self.cmd = 1
+        else:
+            self.cmd = 0
+
+        # Handle tokens
+        if char.isdigit():
+            # reset keywords
+            self.reset_keywords()
+            self.number += char
+        elif char == ' ' or char == '\n':
+            # reset keywords
+            self.reset_keywords()
+            return
+        else:
+            # Handle number construction
+            if self.number:
+                tokens.append(Token('NUM', int(self.number)))
+                number = ''
+            # Handle single chars
+            if char == ';':
+                tokens.append(Token('SEMICOLON', char))
+            if char == '(':
+                tokens.append(Token('LPAR', None))
+            elif char == ')':
+                tokens.append(Token('RPAR', None))
+            elif char in "+-*":
+                tokens.append(Token('OP', char))
+            elif char == '/':
+                tokens.append(Token('DIV', None))
+            # Handle multiple chars
+            else:
+                self.unknown_kw += char
+                for keyword in self.keywords:
+                    if keyword.startswith(char[self.keywords[keyword]:]):
+                        self.keywords[keyword] += 1
+                        if self.keywords[keyword] == len(keyword):
+                            tokens.append(Token(keyword.upper(), None))
+                            unknown_kw = ""
+                            self.keywords[keyword] = 0
+                    else:
+                        self.keywords[keyword] = 0
 
 
 def tokenize(expression):
@@ -48,61 +130,6 @@ def tokenize(expression):
             unknown_kw = ""
         for k in keywords.keys():
             keywords[k] = 0
-
-    for char in expression:
-
-        # Handle comments
-        if cmd == 2:
-            if char == '\n':
-                cmd = 0
-            continue
-        elif char == '/':
-            if cmd == 1:
-                cmd += 1
-                tokens.pop()
-                continue
-            else:
-                cmd = 1
-        else:
-            cmd = 0
-
-        # Handle tokens
-        if char.isdigit():
-            # reset keywords
-            reset_keywords()
-            number += char
-        elif char == ' ' or char == '\n':
-            # reset keywords
-            reset_keywords()
-            continue
-        else:
-            # Handle number construction
-            if number:
-                tokens.append(Token('NUM', int(number)))
-                number = ''
-            # Handle single chars
-            if char == ';':
-                tokens.append(Token('SEMICOLON', char))
-            if char == '(':
-                tokens.append(Token('LPAR', None))
-            elif char == ')':
-                tokens.append(Token('RPAR', None))
-            elif char in "+-*":
-                tokens.append(Token('OP', char))
-            elif char == '/':
-                tokens.append(Token('DIV', None))
-            # Handle multiple chars
-            else:
-                unknown_kw += char
-                for keyword in keywords:
-                    if keyword.startswith(char[keywords[keyword]:]):
-                        keywords[keyword] += 1
-                        if keywords[keyword] == len(keyword):
-                            tokens.append(Token(keyword.upper(), None))
-                            unknown_kw = ""
-                            keywords[keyword] = 0
-                    else:
-                        keywords[keyword] = 0
 
     if number:
         tokens.append(int(number))
