@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace antlr
 {
-    internal enum Type
+    public enum Type
     {
         Int,
         Float,

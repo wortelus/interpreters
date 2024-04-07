@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace antlr
 {
-    internal class Errors
+    public class Errors
     {
         private static readonly List<string> ErrorsData = new List<string>();
         static public void ReportError(IToken token, string message)

@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 
 namespace antlr
 {
-    internal class EvalListener : grammarProjABaseListener
+    public class EvalListener : grammarProjABaseListener
     {
         ParseTreeProperty<(Type type, object value)> values = new ParseTreeProperty<(Type type, object value)>();
+
+        
     }
 }

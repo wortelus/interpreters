@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace antlr
 {
-    internal class VerboseListener : BaseErrorListener
+    public class VerboseListener : BaseErrorListener
     {
         public override void SyntaxError([NotNull] IRecognizer recognizer, [Nullable] IToken offendingSymbol, int line, int charPositionInLine, [NotNull] string msg, [Nullable] RecognitionException e)
         {

@@ -8,7 +8,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace antlr
 {
-    internal class SymbolTable
+    public class SymbolTable
     {
         Dictionary<string, (Type Type, object Value)> memory = new Dictionary<string, (Type Type, object Value)>();
 
