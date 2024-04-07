@@ -1,87 +1,87 @@
 grammar grammarProjA;
 
-program: statement+ ;
+program: (statement)*;
 
-statement
-    : '{' statement (statement)* '}'                                   # block
-    | typedef IDENTIFIER ( COMMA IDENTIFIER)* SEMICOLON                # declaration
-    | IF '(' expression ')' iftrue=statement (ELSE iffalse=statement)? # ifElse
-    | WHILE '(' expression ')' statement                               # while
-    | READ IDENTIFIER ( COMMA IDENTIFIER)* SEMICOLON                   # readStatement
-    | WRITE expression ( COMMA expression)* SEMICOLON                  # writeStatement
-    | expression SEMICOLON                                             # eval
-    | SEMICOLON                                                        # emptyStatement
-    ;
+TYPE_KEYWORD:
+	INT_KEYWORD
+	| FLOAT_KEYWORD
+	| BOOL_KEYWORD
+	| STRING_KEYWORD;
 
+statement:
+	SEMICOLON											# emptyStatement
+	| TYPE_KEYWORD IDENTIFIER (',' IDENTIFIER)* ';'		# declarations
+	| READ IDENTIFIER (COMMA IDENTIFIER)* SEMICOLON		# read
+	| WRITE expression (COMMA expression)* SEMICOLON	# write
+	| '{' (statement)+ '}'								# block
+	| IF '(' expression ')' iftrue = statement (
+		ELSE ifelse = statement
+	)?										# ifElse
+	| WHILE '(' expression ')' statement	# while
+	| expression SEMICOLON					# eval;
 
+expression:
+	'(' expression ')'									# exprParentheses
+	| prefix = SUB expression							# prefixSub
+	| prefix = NEG expression							# prefixNeg
+	| expression op = (MUL | DIV | MOD) expression		# mulDivOp
+	| expression op = (ADD | SUB | CONCAT) expression	# addSubOp
+	| expression op = (LT | GT) expression				# arithmeticComp
+	| expression op = (EQ | NEQ) expression				# arithmeticEq
+	| expression op = AND expression					# logicalAnd
+	| expression op = OR expression						# logicalOr
+	| <assoc = right> IDENTIFIER '=' expression			# assignment
+	| INT												# int
+	| FLOAT												# float
+	| BOOL												# bool
+	| IDENTIFIER										# identifier
+	| STRING											# string
+	;
 
-expression: 
-    IDENTIFIER                                        # id
-    | ('true'|'false')                                # bool
-    | '(' expression ')'                              # parens
-    | INT                                             # int
-    | FLOAT                                           # float
-    | STRING                                          # string
-    | prefix=SUB expression                           # unarySub
-    | prefix=NOT expression                           # unaryNot
-    | expression op=(MUL|DIV|MOD) expression          # arithmeticMulDivMod
-    | expression op=(ADD|SUB|CONCAT) expression       # arithmeticAddSubConcat
-    | expression op=(LT|GT) expression                # comparison
-    | expression op=(EQ|NEQ) expression               # equals
-    | expression AND expression                       # logicalAnd
-    | expression OR expression                        # logicalOr
-    | <assoc=right> IDENTIFIER '=' expression         # assignment
-    ;
+INT_KEYWORD: 'int';
+FLOAT_KEYWORD: 'float';
+BOOL_KEYWORD: 'bool';
+STRING_KEYWORD: 'string';
+WHILE: 'while';
+IF: 'if';
+ELSE: 'else';
+WRITE: 'write';
+READ: 'read';
 
-typedef
-    : type=INT_KEYWORD
-    | type=FLOAT_KEYWORD
-    | type=STRING_KEYWORD
-    | type=BOOL_KEYWORD
-    ;
+// types
+BOOL: 'true' | 'false';
+// identifier
+IDENTIFIER: [a-zA-Z]+;
+INT: [0-9]+;
+FLOAT: [0-9]* '.' [0-9]+;
 
+STRING: '"' ( EscapeText | ~["\\])* '"';
 
-INT_KEYWORD : 'int';
-FLOAT_KEYWORD : 'float';
-STRING_KEYWORD : 'string';
-BOOL_KEYWORD : 'bool';
+fragment EscapeText:
+	'\\' '"' // Escaped double quote
+	| '\\' '\\' // Escaped backslash
+	| '\\' 'n' // Newline
+	| '\\' 't'; // Tab
 
 // const symbols
+ASSIGN: '=';
+ADD: '+';
+SUB: '-';
+MUL: '*';
+DIV: '/';
+MOD: '%';
+CONCAT: '.';
+LT: '<';
+EQ: '==';
+NEQ: '!=';
+GT: '>';
+AND: '&&';
+OR: '||';
+NEG: '!';
 
-MUL : '*' ;
-DIV : '/' ;
-MOD : '%' ;
-ADD : '+' ;
-SUB : '-' ;
-LT : '<' ;
-EQ  : '==' ;
-NEQ : '!=' ;
-GT : '>' ;
-NOT : '!' ;
-AND : '&&' ;
-OR : '||' ;
-CONCAT : '.' ;
-
-SEMICOLON:  ';';
 COMMA: ',';
+SEMICOLON: ';';
 
-READ : 'read' ;
-WRITE : 'write' ;
-IF : 'if' ;
-ELSE : 'else' ;
-WHILE : 'while' ;
-
-IDENTIFIER : [a-zA-Z] [a-zA-Z0-9]* ;
-
-// DATA TYPES
-
-FLOAT : [0-9]+'.'[0-9]+ ;
-INT : [0-9]+ ;
-BOOL : 'true' | 'false' ;
-STRING : '"' (~["\\\r\n] | STRING_ESC)* '"';
-
-fragment STRING_ESC: '\\' [btnfr"'\\\r\n] ;
-
-WS : [ \t\r\n]+ -> skip ;
-COMMENT: '/*' .*? '*/' -> skip ;
-LINE_COMMENT: '//' ~[\r\n]* -> skip ;
+WS: [ \t\r\n]+ -> skip;
+COMMENT: '/*' .*? '*/' -> skip;
+LINE_COMMENT: '//' ~[\r\n]* -> skip;
