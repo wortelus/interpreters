@@ -31,6 +31,8 @@ namespace antlr
 
             IParseTree tree = parser.program();
 
+            return;
+
             if (parser.NumberOfSyntaxErrors == 0)
             {
                 ParseTreeWalker walker = new ParseTreeWalker();

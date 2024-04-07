@@ -1,4 +1,5 @@
-﻿using Antlr4.Runtime.Tree;
+﻿using Antlr4.Runtime.Misc;
+using Antlr4.Runtime.Tree;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +10,6 @@ namespace antlr
 {
     public class EvalListener : grammarProjABaseListener
     {
-        ParseTreeProperty<(Type type, object value)> values = new ParseTreeProperty<(Type type, object value)>();
-
-        
+        // ParseTreeProperty<(Type type, object value)> values = new ParseTreeProperty<(Type type, object value)>();
     }
 }
