@@ -545,13 +545,27 @@ namespace antlr
 
         public override void ExitDeclarations([NotNull] grammarProjAParser.DeclarationsContext context)
         {
-            var typeValue = values.Get(context.TYPE_KEYWORD());
+            var typeValue = context.TYPE_KEYWORD().GetText();
+
+            Type t;
+            try
+            {
+                t = typeValue.FromString();
+            }
+            catch
+            {
+                //errors.Add("Couldn't declare var.");
+                Errors.ReportError(context.Start, $"Unknown type {typeValue}.");
+                return;
+            }
+
             foreach (var identifier in context.IDENTIFIER())
             {
                 var identifierName = identifier.GetText();
                 if (identifierName != null)
                 {
-                    SymbolTable.Add(identifier.Symbol, typeValue.type);
+                    SymbolTable.Add(identifier.Symbol, t);
+                    SymbolTable[identifier.Symbol] = (t, TypeExtensions.DefaultValue(t));
                 }
                 else
                 {

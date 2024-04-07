@@ -31,12 +31,15 @@ namespace antlr
 
             IParseTree tree = parser.program();
 
-            return;
-
             if (parser.NumberOfSyntaxErrors == 0)
             {
                 ParseTreeWalker walker = new ParseTreeWalker();
                 walker.Walk(new EvalListener(), tree);
+
+                Errors.PrintAndClearErrors();
+            } else
+            {
+                Errors.PrintAndClearErrors();
             }
         }
     }
