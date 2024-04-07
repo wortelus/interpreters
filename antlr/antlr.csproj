@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Antlr4" Version="4.6.6">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Antlr4.Runtime" Version="4.6.6" />
+	</ItemGroup>
+
+	<Target Name="CustomCopyToDebugAndBin" AfterTargets="AfterBuild">
+		<ItemGroup>
+			<_CustomFiles Include="inputs\**\*" />
+		</ItemGroup>
+		<!-- Copy to obj\Debug or obj\Release depending on the configuration -->
+		<Copy SourceFiles="@(_CustomFiles)"
+			  DestinationFiles="@(_CustomFiles->'$(IntermediateOutputPath)\%(RecursiveDir)%(Filename)%(Extension)')" />
+		<!-- Copy to bin directory -->
+		<Copy SourceFiles="@(_CustomFiles)"
+			  DestinationFiles="@(_CustomFiles->'$(OutputPath)\%(RecursiveDir)%(Filename)%(Extension)')" />
+	</Target>
+
+
+</Project>
