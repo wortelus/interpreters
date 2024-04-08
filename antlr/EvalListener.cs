@@ -160,11 +160,22 @@ namespace antlr
 
                             values.Put(context, (Type.Int, (int)a % b));
                         }
+                        else if (rightValue.type == Type.Float)
+                        {
+                            Errors.ReportError(context.Start, "During mod you have to have int as second parameter.");
+                        }
                         else if ((leftValue.type == Type.Int || leftValue.type == Type.Float) &&
                             (rightValue.type == Type.Int || rightValue.type == Type.Float))
                         {
-                            float a = (float)leftValue.value;
-                            float b = (float)rightValue.value;
+                            float? a = ToFloat(leftValue.value);
+                            float? b = ToFloat(rightValue.value);
+
+                            if (a is null || b is null)
+                            {
+                                //errors.Add("Unsupported addition");
+                                Errors.ReportError(context.Start, "Either a or b cannot be converted to float during mod.");
+                                return;
+                            }
 
                             values.Put(context, (Type.Int, (float)a % b));
                         }
