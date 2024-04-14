@@ -127,7 +127,7 @@ namespace antlr
                             code.Put(context, string.Concat(
                                     $"{leftCode}\n",
                                     $"{rightCode}\n",
-                                    $"mul {leftCode} {rightCode}\n"
+                                    $"mul\n"
                                 ));
                         }
                         // both floats
@@ -143,7 +143,7 @@ namespace antlr
                             code.Put(context, string.Concat(
                                     $"{leftCode}\n",
                                     $"{rightCode}\n",
-                                    $"mul {leftCode} {rightCode}\n"
+                                    $"mul\n"
                                 ));
                         }
                         // one float, one int
@@ -170,7 +170,7 @@ namespace antlr
                                     $"{left}\n",
                                     $"itof\n",
                                     $"{right}\n",
-                                    "add\n"
+                                    "mul\n"
                                     ));
                             }
                             else
@@ -180,7 +180,7 @@ namespace antlr
                                     $"{left}\n",
                                     $"{right}\n",
                                     $"itof\n",
-                                    "add\n"
+                                    "mul\n"
                                     ));
                             }
 
@@ -195,20 +195,69 @@ namespace antlr
                     break;
                 case grammarProjAParser.DIV:
                     {
+                        // both ints
                         if (leftValue.type == rightValue.type && leftValue.type == Type.Int)
                         {
                             int a = (int)leftValue.value;
                             int b = (int)rightValue.value;
 
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+
                             values.Put(context, (Type.Int, (int)a / b));
+                            code.Put(context, string.Concat(
+                                    $"{leftCode}\n",
+                                    $"{rightCode}\n",
+                                    $"div\n"
+                                ));
                         }
-                        else if ((leftValue.type == Type.Int || leftValue.type == Type.Float) &&
-                            (rightValue.type == Type.Int || rightValue.type == Type.Float))
+                        // both floats
+                                                else if (leftValue.type == rightValue.type && leftValue.type == Type.Float)
+                        {
+                            float a = (float)leftValue.value;
+                            float b = (float)rightValue.value;
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+                            values.Put(context, (Type.Float, a / b));
+                            code.Put(context, string.Concat(
+                                $"{leftCode}\n",
+                                $"{rightCode}\n",
+                                $"div\n"
+                                ));
+                        }
+
+                        // one float, one int
+                        else if ((leftValue.type == Type.Int && leftValue.type == Type.Float) ||
+                            (rightValue.type == Type.Int && rightValue.type == Type.Float))
                         {
                             float a = (float)leftValue.value;
                             float b = (float)rightValue.value;
 
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+
                             values.Put(context, (Type.Int, (float)a / b));
+
+                            if (leftValue.type == Type.Int)
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{leftCode}\n",
+                                    $"itof\n",
+                                    $"{rightCode}\n",
+                                    "div\n"
+                                    ));
+                            }
+                            else
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{leftCode}\n",
+                                    $"{rightCode}\n",
+                                    $"itof\n",
+                                    "div\n"
+                                    ));
+                            }
                         }
                         else
                         {
@@ -224,7 +273,15 @@ namespace antlr
                             int a = (int)leftValue.value;
                             int b = (int)rightValue.value;
 
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+
                             values.Put(context, (Type.Int, (int)a % b));
+                            code.Put(context, string.Concat(
+                                $"{leftCode}\n",
+                                $"{rightCode}\n",
+                                $"mod\n"
+                                ));
                         }
                         else if (rightValue.type == Type.Float)
                         {
@@ -241,6 +298,30 @@ namespace antlr
                                 //errors.Add("Unsupported addition");
                                 Errors.ReportError(context.Start, "Either a or b cannot be converted to float during mod.");
                                 return;
+                            }
+
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+
+                            if (leftValue.type == Type.Int)
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{leftCode}\n",
+                                    $"itof\n",
+                                    $"{rightCode}\n",
+                                    "mod\n"
+                                    ));
+                            }
+                            else
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{leftCode}\n",
+                                    $"{rightCode}\n",
+                                    $"itof\n",
+                                    "mod\n"
+                                    ));
                             }
 
                             values.Put(context, (Type.Int, (float)a % b));
@@ -463,6 +544,9 @@ namespace antlr
             var leftValue = values.Get(context.expression()[0]);
             var rightValue = values.Get(context.expression()[1]);
 
+            var leftCode = code.Get(context.expression()[0]);
+            var rightCode = code.Get(context.expression()[1]);
+
             if (context.op.Type == grammarProjAParser.LT || context.op.Type == grammarProjAParser.GT)
             {
                 try
@@ -479,9 +563,9 @@ namespace antlr
                         {
                             code.Put(
                                context, string.Concat(
-                               $"{leftValue}\n",
+                               $"{leftCode}\n",
+                               $"{rightCode}\n",
                                $"itof\n",
-                               $"{rightValue}\n",
                                context.op.Type == grammarProjAParser.LT ? "lt\n" : "gt\n"
                            ));
                         }
@@ -489,12 +573,20 @@ namespace antlr
                         {
                             code.Put(
                                context, string.Concat(
-                               $"{leftValue}\n",
-                               $"{rightValue}\n",
+                               $"{leftCode}\n",
                                $"itof\n",
+                               $"{rightCode}\n",
                                context.op.Type == grammarProjAParser.LT ? "lt\n" : "gt\n"
                             ));
                         }
+                    }
+                    else
+                    {
+                        code.Put(context, string.Concat(
+                            $"{leftCode}\n", 
+                            $"{rightCode}\n",
+                            context.op.Type == grammarProjAParser.LT ? "lt\n" : "gt\n"
+                        ));
                     }
                 }
                 catch
@@ -515,6 +607,9 @@ namespace antlr
             var leftValue = values.Get(context.expression()[0]);
             var rightValue = values.Get(context.expression()[1]);
 
+            var leftCode = code.Get(context.expression()[0]);
+            var rightCode = code.Get(context.expression()[1]);
+
             if (context.op.Type == grammarProjAParser.EQ || context.op.Type == grammarProjAParser.NEQ)
             {
                 try
@@ -531,22 +626,31 @@ namespace antlr
                         {
                             code.Put(
                                context, string.Concat(
-                               $"{leftValue}\n",
+                               $"{leftCode}\n",
                                $"itof\n",
-                               $"{rightValue}\n",
-                               context.op.Type == grammarProjAParser.EQ ? "eq\n" : "neq\n"
+                               $"{rightCode}\n",
+                               context.op.Type == grammarProjAParser.EQ ? "eq\n" : "eq\nnot\n"
                            ));
                         }
                         else
                         {
                             code.Put(
                                context, string.Concat(
-                               $"{leftValue}\n",
-                               $"{rightValue}\n",
+                               $"{leftCode}\n",
+                               $"{rightCode}\n",
                                $"itof\n",
-                               context.op.Type == grammarProjAParser.EQ ? "eq\n" : "neq\n"
+                               context.op.Type == grammarProjAParser.EQ ? "eq\n" : "eq\nnot\n"
                             ));
                         }
+                    }
+                    else
+                    {
+                        code.Put(
+                               context, string.Concat(
+                               $"{leftCode}\n",
+                               $"{rightCode}\n",
+                               context.op.Type == grammarProjAParser.EQ ? "eq\n" : "eq\nnot\n"
+                            ));
                     }
                 }
                 catch
@@ -622,8 +726,25 @@ namespace antlr
             }
         }
 
+
+        bool first = true;
+        string firstContent = "";
+        public override void EnterAssignment([NotNull] grammarProjAParser.AssignmentContext context)
+        {
+            base.EnterAssignment(context);
+
+            if (first)
+            {
+                first = false;
+                firstContent = context.expression().GetText();
+            }
+        }
+
         public override void ExitAssignment([NotNull] grammarProjAParser.AssignmentContext context)
         {
+            base.ExitAssignment(context);
+
+            var rightCode = code.Get(context.expression());
             var rightValue = values.Get(context.expression());
             var storedValue = SymbolTable[context.IDENTIFIER().Symbol];
             string variable = context.IDENTIFIER().GetText();
@@ -633,6 +754,7 @@ namespace antlr
                 SymbolTable[context.IDENTIFIER().Symbol] = rightValue;
                 values.Put(context, rightValue);
                 code.Put(context, string.Concat(
+                          rightCode,
                           $"save {variable}\n",
                           $"load {variable}\n"
                           ));
@@ -645,6 +767,7 @@ namespace antlr
                     SymbolTable[context.IDENTIFIER().Symbol] = value;
                     values.Put(context, value);
                     code.Put(context, string.Concat(
+                            rightCode,
                             $"itof\n",
                             $"save {variable}\n",
                             $"load {variable}\n"
@@ -665,6 +788,7 @@ namespace antlr
                     SymbolTable[context.IDENTIFIER().Symbol] = value;
                     values.Put(context, value);
                     code.Put(context, string.Concat(
+                           rightCode,
                            $"save {variable}\n",
                            $"load {variable}\n"
                          ));
@@ -684,6 +808,7 @@ namespace antlr
                     SymbolTable[context.IDENTIFIER().Symbol] = value;
                     values.Put(context, value);
                     code.Put(context, string.Concat(
+                           rightCode,
                            $"save {variable}\n",
                            $"load {variable}\n"
                          ));
@@ -703,6 +828,7 @@ namespace antlr
                     SymbolTable[context.IDENTIFIER().Symbol] = value;
                     values.Put(context, value);
                     code.Put(context, string.Concat(
+                           rightCode,
                            $"save {variable}\n",
                            $"load {variable}\n"
                          ));
@@ -717,6 +843,13 @@ namespace antlr
             {
                 //errors.Add("Error in assignment.");
                 Errors.ReportError(context.Start, "Error in assignment.");
+            }
+
+            if (context.expression().GetText() == firstContent && !first)
+            {
+                first = true;
+                rightCode = code.Get(context);
+                code.Put(context, rightCode + "pop\n");
             }
         }
 
@@ -804,7 +937,7 @@ namespace antlr
             }
 
             values.Put(context, storedVar);
-            code.Put(context, $"load {storedVar.Value}\n");
+            code.Put(context, $"load {varName}\n");
         }
 
         //
@@ -843,7 +976,7 @@ namespace antlr
                     SymbolTable.Add(identifier.Symbol, t);
                     SymbolTable[identifier.Symbol] = (t, TypeExtensions.DefaultValue(t));
 
-                    //code += $"{typeValue}\n";
+                    code += $"push {TypeExtensions.ToChar(t)} {t.Represent(t.DefaultValue())}\n";
                     code += $"save {identifierName}\n";
                 }
                 else
@@ -884,7 +1017,8 @@ namespace antlr
 
                 if (identifierName != null)
                 {
-                    code += $"read {datatype}{identifierName}\n";
+                    code += $"read {datatype}\n";
+                    code += $"save {identifierName}\n";
                 }
                 else
                 {
@@ -924,19 +1058,21 @@ namespace antlr
                 return;
             }
 
-            int positiveEndLabel = Label.GetNextLabel();
+            var conditionCode = code.Get(context.expression());
+
             int negativeLabel = Label.GetNextLabel();
+            int positiveEndLabel = Label.GetNextLabel();
 
-            string ifBranch = code.Get(context.iftrue);
-            string ifElseBranch = context.ifelse == null ? string.Empty : code.Get(context.ifelse);
+            string ifBranchCode = code.Get(context.iftrue);
+            string ifElseBranchCode = context.ifelse == null ? string.Empty : code.Get(context.ifelse);
 
-            code.Put(context, string.Concat(condition,
+            code.Put(context, string.Concat(conditionCode,
                 "fjmp ",
                 $"{negativeLabel}\n",
-                $"{ifBranch}\n",
+                $"{ifBranchCode}\n",
                 $"jmp {positiveEndLabel}\n",
                 $"label {negativeLabel}\n",
-                $"{ifElseBranch}\n",
+                $"{ifElseBranchCode}\n",
                 $"label {positiveEndLabel}\n"));
         }
 
@@ -950,16 +1086,18 @@ namespace antlr
                 return;
             }
 
-            var startLabel = Label.GetNextLabel();
-            var endLabel = Label.GetNextLabel();
+            var conditionCode = code.Get(context.expression());
 
-            string statement =
+            var endLabel = Label.GetNextLabel();
+            var startLabel = Label.GetNextLabel();
+
+            string statementCode =
                 $"{code.Get(context.statement())}\n";
 
             code.Put(context, $"label {startLabel}\n" +
-                $"{condition}\n" +
+                $"{conditionCode}\n" +
                 $"fjmp {endLabel}\n" +
-                $"{statement}\n" +
+                $"{statementCode}\n" +
                 $"jmp {startLabel}\n" +
                 $"label {endLabel}\n");
         }
@@ -991,6 +1129,7 @@ namespace antlr
         public override void ExitEval([NotNull] grammarProjAParser.EvalContext context)
         {
             base.ExitEval(context);
+            code.Put(context, code.Get(context.expression()));
         }
 
         public override void ExitProgram([NotNull] grammarProjAParser.ProgramContext context)

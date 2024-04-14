@@ -39,6 +39,40 @@ namespace antlr
             }
         }
 
+        public static string Represent(this Type type, object value)
+        {
+            switch (type)
+            {
+                case Type.Int:
+                    return ((int)value).ToString();
+                case Type.Float:
+                    return ((double)value).ToString();
+                case Type.Bool:
+                    return (bool)value == true ? "true" : "false";
+                case Type.String:
+                    return $"\"{value.ToString()}\"";
+                default:
+                    return "unknown";
+            }
+        }
+
+        public static char ToChar(this Type type)
+        {
+            switch (type)
+            {
+                case Type.Int:
+                    return 'I';
+                case Type.Float:
+                    return 'F';
+                case Type.Bool:
+                    return 'B';
+                case Type.String:
+                    return 'S';
+                default:
+                    return 'U';
+            }
+        }
+
         public static Type FromString(this string value)
         {
             switch (value)
