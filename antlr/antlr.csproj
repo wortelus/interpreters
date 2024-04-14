@@ -20,11 +20,9 @@
 			<_CustomFiles Include="inputs\**\*" />
 		</ItemGroup>
 		<!-- Copy to obj\Debug or obj\Release depending on the configuration -->
-		<Copy SourceFiles="@(_CustomFiles)"
-			  DestinationFiles="@(_CustomFiles->'$(IntermediateOutputPath)\%(RecursiveDir)%(Filename)%(Extension)')" />
+		<Copy SourceFiles="@(_CustomFiles)" DestinationFiles="@(_CustomFiles->'$(IntermediateOutputPath)\%(RecursiveDir)%(Filename)%(Extension)')" />
 		<!-- Copy to bin directory -->
-		<Copy SourceFiles="@(_CustomFiles)"
-			  DestinationFiles="@(_CustomFiles->'$(OutputPath)\%(RecursiveDir)%(Filename)%(Extension)')" />
+		<Copy SourceFiles="@(_CustomFiles)" DestinationFiles="@(_CustomFiles->'$(OutputPath)\%(RecursiveDir)%(Filename)%(Extension)')" />
 	</Target>
 
 

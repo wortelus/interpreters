@@ -37,7 +37,8 @@ namespace antlr
                 walker.Walk(new EvalListener(), tree);
 
                 Errors.PrintAndClearErrors();
-            } else
+            } 
+            else
             {
                 Errors.PrintAndClearErrors();
             }

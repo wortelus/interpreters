@@ -1,4 +1,5 @@
-﻿using Antlr4.Runtime;
+﻿using antlr.Processing;
+using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using System;
@@ -13,7 +14,14 @@ namespace antlr
     public class EvalListener : grammarProjABaseListener
     {
         ParseTreeProperty<(Type type, object value)> values = new ParseTreeProperty<(Type type, object value)>();
+        ParseTreeProperty<string> code = new ParseTreeProperty<string>();
         SymbolTable SymbolTable = new SymbolTable();
+
+        public ParseTreeProperty<string> GetCode()
+        {
+            return code;
+        }
+
         private float? ToFloat(object value)
         {
             if (value is int x) return (float)x;
@@ -28,11 +36,13 @@ namespace antlr
         public override void ExitExprParentheses([NotNull] grammarProjAParser.ExprParenthesesContext context)
         {
             values.Put(context, values.Get(context.expression()));
+            code.Put(context, code.Get(context.expression()));
         }
 
         public override void ExitPrefixSub([NotNull] grammarProjAParser.PrefixSubContext context)
         {
             var val = values.Get(context.expression());
+            var valCode = code.Get(context.expression());
 
             try
             {
@@ -42,12 +52,14 @@ namespace antlr
                         {
                             int a = -(int)val.value;
                             values.Put(context, (Type.Int, a));
+                            code.Put(context, valCode + "uminus\n");
                             break;
                         }
                     case Type.Float:
                         {
                             float a = -(float)val.value;
                             values.Put(context, (Type.Float, a));
+                            code.Put(context, valCode + "uminus\n");
                             break;
                         }
                     default:
@@ -66,6 +78,7 @@ namespace antlr
         public override void ExitPrefixNeg([NotNull] grammarProjAParser.PrefixNegContext context)
         {
             var val = values.Get(context.expression());
+            var valCode = code.Get(context.expression());
 
             try
             {
@@ -75,6 +88,8 @@ namespace antlr
                         {
                             bool a = !(bool)val.value;
                             values.Put(context, (Type.Bool, a));
+
+                            code.Put(context, valCode + "not\n");
                             break;
                         }
                     default:
@@ -99,15 +114,41 @@ namespace antlr
             {
                 case grammarProjAParser.MUL:
                     {
+                        // both ints
                         if (leftValue.type == rightValue.type && leftValue.type == Type.Int)
                         {
                             int a = (int)leftValue.value;
                             int b = (int)rightValue.value;
 
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+
                             values.Put(context, (Type.Int, (int)a * b));
+                            code.Put(context, string.Concat(
+                                    $"{leftCode}\n",
+                                    $"{rightCode}\n",
+                                    $"mul {leftCode} {rightCode}\n"
+                                ));
                         }
-                        else if ((leftValue.type == Type.Int || leftValue.type == Type.Float) &&
-                            (rightValue.type == Type.Int || rightValue.type == Type.Float))
+                        // both floats
+                        else if (leftValue.type == rightValue.type && leftValue.type == Type.Float)
+                        {
+                            float a = (float)leftValue.value;
+                            float b = (float)rightValue.value;
+
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+
+                            values.Put(context, (Type.Float, a * b));
+                            code.Put(context, string.Concat(
+                                    $"{leftCode}\n",
+                                    $"{rightCode}\n",
+                                    $"mul {leftCode} {rightCode}\n"
+                                ));
+                        }
+                        // one float, one int
+                        else if ((leftValue.type == Type.Int && rightValue.type == Type.Float) ||
+                                 (leftValue.type == Type.Float && rightValue.type == Type.Int))
                         {
                             float? a = ToFloat(leftValue.value);
                             float? b = ToFloat(rightValue.value);
@@ -119,8 +160,33 @@ namespace antlr
                                 return;
                             }
 
-                            values.Put(context, (Type.Int,  (float)a * b));
-                        } else
+                            // mul code
+                            var left = code.Get(context.expression()[0]);
+                            var right = code.Get(context.expression()[1]);
+                            if (leftValue.type == Type.Int)
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{left}\n",
+                                    $"itof\n",
+                                    $"{right}\n",
+                                    "add\n"
+                                    ));
+                            }
+                            else
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{left}\n",
+                                    $"{right}\n",
+                                    $"itof\n",
+                                    "add\n"
+                                    ));
+                            }
+
+                            values.Put(context, (Type.Int, (float)a * b));
+                        }
+                        else
                         {
                             //errors.Add("Unsupported multiplication");
                             Errors.ReportError(context.Start, "Unsupported multiplication");
@@ -202,18 +268,71 @@ namespace antlr
             {
                 case grammarProjAParser.ADD:
                     {
+                        // Both ints
                         if (leftValue.type == rightValue.type && leftValue.type == Type.Int)
                         {
                             int a = (int)leftValue.value;
                             int b = (int)rightValue.value;
 
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+
                             values.Put(context, (Type.Int, (int)a + b));
+                            code.Put(context, string.Concat(
+                            $"{leftCode}\n",
+                            $"{rightCode}\n",
+                            "add\n"
+                         ));
                         }
-                        else if ((leftValue.type == Type.Int || leftValue.type == Type.Float) &&
-                            (rightValue.type == Type.Int || rightValue.type == Type.Float))
+                        // Both floats
+                        else if (leftValue.type == Type.Float && rightValue.type == Type.Float)
+                        {
+                            float a = (float)leftValue.value;
+                            float b = (float)rightValue.value;
+
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+
+                            values.Put(context, (Type.Float, (float)a + b));
+                            code.Put(context, string.Concat(
+                                                    $"{leftCode}\n",
+                                                    $"{rightCode}\n",
+                                                    "add\n"
+                                                ));
+                        }
+                        // One float, one int
+                        else if (
+                            (leftValue.type == Type.Int && rightValue.type == Type.Float) ||
+                            (leftValue.type == Type.Float && rightValue.type == Type.Int)
+                            )
                         {
                             float? a = ToFloat(leftValue.value);
                             float? b = ToFloat(rightValue.value);
+
+
+                            // add code
+                            var left = code.Get(context.expression()[0]);
+                            var right = code.Get(context.expression()[1]);
+                            if (leftValue.type == Type.Int)
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{left}\n",
+                                    $"itof\n",
+                                    $"{right}\n",
+                                    "add\n"
+                                    ));
+                            }
+                            else
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{left}\n",
+                                    $"{right}\n",
+                                    $"itof\n",
+                                    "add\n"
+                                    ));
+                            }
 
                             if (a is null || b is null)
                             {
@@ -233,18 +352,68 @@ namespace antlr
                     break;
                 case grammarProjAParser.SUB:
                     {
+                        // Both ints
                         if (leftValue.type == rightValue.type && leftValue.type == Type.Int)
                         {
                             int a = (int)leftValue.value;
                             int b = (int)rightValue.value;
 
+                            var left = code.Get(context.expression()[0]);
+                            var right = code.Get(context.expression()[1]);
+
                             values.Put(context, (Type.Int, (int)a - b));
+                            code.Put(context, string.Format(
+                                $"{left}\n",
+                                $"{right}\n",
+                                "sub\n"
+                                ));
                         }
-                        else if ((leftValue.type == Type.Int || leftValue.type == Type.Float) &&
-                            (rightValue.type == Type.Int || rightValue.type == Type.Float))
+                        // Both floats
+                        else if (leftValue.type == Type.Float && rightValue.type == Type.Float)
+                        {
+                            float a = (float)leftValue.value;
+                            float b = (float)rightValue.value;
+
+                            var leftCode = code.Get(context.expression()[0]);
+                            var rightCode = code.Get(context.expression()[1]);
+
+                            values.Put(context, (Type.Float, (float)a - b));
+                            code.Put(context, string.Format(
+                                $"{leftCode}\n",
+                                $"{rightCode}\n",
+                                "sub\n"
+                                ));
+                        }
+                        // One float, one int
+                        else if ((leftValue.type == Type.Int && rightValue.type == Type.Float) &&
+                                 (leftValue.type == Type.Float && rightValue.type == Type.Int))
                         {
                             float? a = ToFloat(leftValue.value);
                             float? b = ToFloat(rightValue.value);
+
+                            // add code
+                            var left = code.Get(context.expression()[0]);
+                            var right = code.Get(context.expression()[1]);
+                            if (leftValue.type == Type.Int)
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{left}\n",
+                                    $"itof\n",
+                                    $"{right}\n",
+                                    "sub\n"
+                                    ));
+                            }
+                            else
+                            {
+                                code.Put(
+                                    context, string.Concat(
+                                    $"{left}\n",
+                                    $"{right}\n",
+                                    $"itof\n",
+                                    "sub\n"
+                                    ));
+                            }
 
                             if (a is null || b is null)
                             {
@@ -267,6 +436,11 @@ namespace antlr
                         if (leftValue.type == Type.String && rightValue.type == Type.String)
                         {
                             values.Put(context, (Type.String, String.Concat((string)leftValue.value, (string)rightValue.value)));
+                            code.Put(context, string.Concat(
+                                           code.Get(context.expression()[0]),
+                                           code.Get(context.expression()[1]),
+                                           "concat\n"
+                                       ));
                         }
                         else
                         {
@@ -293,17 +467,43 @@ namespace antlr
             {
                 try
                 {
+                    // check if both are floats
                     bool comp = ToFloat(leftValue.value) > ToFloat(rightValue.value);
                     values.Put(context, (Type.Bool,
                     context.op.Type == grammarProjAParser.LT ? comp : !comp
                     ));
+                    // add code
+                    if (leftValue.type != rightValue.type)
+                    {
+                        if (leftValue.type == Type.Float)
+                        {
+                            code.Put(
+                               context, string.Concat(
+                               $"{leftValue}\n",
+                               $"itof\n",
+                               $"{rightValue}\n",
+                               context.op.Type == grammarProjAParser.LT ? "lt\n" : "gt\n"
+                           ));
+                        }
+                        else
+                        {
+                            code.Put(
+                               context, string.Concat(
+                               $"{leftValue}\n",
+                               $"{rightValue}\n",
+                               $"itof\n",
+                               context.op.Type == grammarProjAParser.LT ? "lt\n" : "gt\n"
+                            ));
+                        }
+                    }
                 }
-                catch 
+                catch
                 {
                     //errors.Add("couldn't arithmetic comp, check types.");
                     Errors.ReportError(context.Start, "couldn't arithmetic comp, check types.");
                 }
-            } else
+            }
+            else
             {
                 //errors.Add("error arithmetic comp.");
                 Errors.ReportError(context.Start, "error arithmetic comp.");
@@ -319,10 +519,35 @@ namespace antlr
             {
                 try
                 {
+                    // check if both are floats
                     bool comp = ToFloat(leftValue.value) == ToFloat(rightValue.value);
                     values.Put(context, (Type.Bool,
                     context.op.Type == grammarProjAParser.EQ ? comp : !comp
                     ));
+                    // add code
+                    if (leftValue.type != rightValue.type)
+                    {
+                        if (leftValue.type == Type.Float)
+                        {
+                            code.Put(
+                               context, string.Concat(
+                               $"{leftValue}\n",
+                               $"itof\n",
+                               $"{rightValue}\n",
+                               context.op.Type == grammarProjAParser.EQ ? "eq\n" : "neq\n"
+                           ));
+                        }
+                        else
+                        {
+                            code.Put(
+                               context, string.Concat(
+                               $"{leftValue}\n",
+                               $"{rightValue}\n",
+                               $"itof\n",
+                               context.op.Type == grammarProjAParser.EQ ? "eq\n" : "neq\n"
+                            ));
+                        }
+                    }
                 }
                 catch
                 {
@@ -348,6 +573,11 @@ namespace antlr
                 {
                     bool comp = (bool)leftValue.value && (bool)rightValue.value;
                     values.Put(context, (Type.Bool, comp));
+                    code.Put(context, string.Concat(
+                                               code.Get(context.expression()[0]),
+                                               code.Get(context.expression()[1]),
+                                               "and\n"
+                    ));
                 }
                 catch
                 {
@@ -373,6 +603,11 @@ namespace antlr
                 {
                     bool comp = (bool)leftValue.value || (bool)rightValue.value;
                     values.Put(context, (Type.Bool, comp));
+                    code.Put(context, string.Concat(
+                           code.Get(context.expression()[0]),
+                           code.Get(context.expression()[1]),
+                           "or\n"
+                        ));
                 }
                 catch
                 {
@@ -397,6 +632,10 @@ namespace antlr
             {
                 SymbolTable[context.IDENTIFIER().Symbol] = rightValue;
                 values.Put(context, rightValue);
+                code.Put(context, string.Concat(
+                          $"save {variable}\n",
+                          $"load {variable}\n"
+                          ));
             }
             else if (rightValue.type == Type.Float)
             {
@@ -405,13 +644,19 @@ namespace antlr
                     var value = (Type.Float, ToFloat(rightValue.value));
                     SymbolTable[context.IDENTIFIER().Symbol] = value;
                     values.Put(context, value);
+                    code.Put(context, string.Concat(
+                            $"itof\n",
+                            $"save {variable}\n",
+                            $"load {variable}\n"
+                          ));
                 }
                 catch
                 {
                     //errors.Add("Couldnt assign non float variable. ");
                     Errors.ReportError(context.Start, "Couldnt assign non float variable. ");
                 }
-            } else if (rightValue.type == Type.Int)
+            }
+            else if (rightValue.type == Type.Int)
             {
                 try
                 {
@@ -419,6 +664,10 @@ namespace antlr
                     var value = (Type.Int, v);
                     SymbolTable[context.IDENTIFIER().Symbol] = value;
                     values.Put(context, value);
+                    code.Put(context, string.Concat(
+                           $"save {variable}\n",
+                           $"load {variable}\n"
+                         ));
                 }
                 catch
                 {
@@ -434,6 +683,10 @@ namespace antlr
                     var value = (Type.Bool, v);
                     SymbolTable[context.IDENTIFIER().Symbol] = value;
                     values.Put(context, value);
+                    code.Put(context, string.Concat(
+                           $"save {variable}\n",
+                           $"load {variable}\n"
+                         ));
                 }
                 catch
                 {
@@ -449,6 +702,10 @@ namespace antlr
                     var value = (Type.String, v);
                     SymbolTable[context.IDENTIFIER().Symbol] = value;
                     values.Put(context, value);
+                    code.Put(context, string.Concat(
+                           $"save {variable}\n",
+                           $"load {variable}\n"
+                         ));
                 }
                 catch
                 {
@@ -466,9 +723,11 @@ namespace antlr
         public override void ExitInt([NotNull] grammarProjAParser.IntContext context)
         {
             int value;
-            if (int.TryParse(context.INT().GetText(), out value)) {
+            if (int.TryParse(context.INT().GetText(), out value))
+            {
                 values.Put(context, (Type.Int, value));
-            } 
+                code.Put(context, $"push I {value}\n");
+            }
             else
             {
                 //errors.Add("Couldnt convert to integer during int expression. ");
@@ -482,6 +741,7 @@ namespace antlr
             if (float.TryParse(context.FLOAT().GetText(), CultureInfo.InvariantCulture, out value))
             {
                 values.Put(context, (Type.Float, value));
+                code.Put(context, $"push F {value}\n");
             }
             else
             {
@@ -498,17 +758,19 @@ namespace antlr
                 if (value.ToLower().Trim() == "true")
                 {
                     values.Put(context, (Type.Bool, true));
-                } 
+                    code.Put(context, $"push B {value}\n");
+                }
                 else if (value.ToLower().Trim() == "false")
                 {
                     values.Put(context, (Type.Bool, false));
+                    code.Put(context, $"push B {value}\n");
                 }
                 else
                 {
                     //errors.Add("Couldnt convert to boolean during int expression. Not boolean value.");
                     Errors.ReportError(context.Start, "Couldnt convert to boolean during int expression. Not boolean value.");
                 }
-            } 
+            }
             catch
             {
                 //errors.Add("Couldnt convert to boolean during int expression.");
@@ -522,7 +784,8 @@ namespace antlr
             {
                 string value = context.STRING().GetText();
                 values.Put(context, (Type.String, value));
-            } 
+                code.Put(context, $"push S {value}\n");
+            }
             catch
             {
                 //errors.Add("Couldnt convert to string.");
@@ -541,6 +804,7 @@ namespace antlr
             }
 
             values.Put(context, storedVar);
+            code.Put(context, $"load {storedVar.Value}\n");
         }
 
         //
@@ -570,6 +834,7 @@ namespace antlr
                 return;
             }
 
+            string code = string.Empty;
             foreach (var identifier in context.IDENTIFIER())
             {
                 var identifierName = identifier.GetText();
@@ -577,6 +842,9 @@ namespace antlr
                 {
                     SymbolTable.Add(identifier.Symbol, t);
                     SymbolTable[identifier.Symbol] = (t, TypeExtensions.DefaultValue(t));
+
+                    //code += $"{typeValue}\n";
+                    code += $"save {identifierName}\n";
                 }
                 else
                 {
@@ -584,21 +852,66 @@ namespace antlr
                     Errors.ReportError(context.Start, "Couldn't declare var.");
                 }
             }
+            this.code.Put(context, code);
         }
 
         public override void ExitRead([NotNull] grammarProjAParser.ReadContext context)
         {
-            base.ExitRead(context);
+            string code = string.Empty;
+            foreach (var identifier in context.IDENTIFIER())
+            {
+                var identifierName = identifier.GetText();
+
+                char datatype = 'U';
+                switch (SymbolTable[identifier.Symbol].Type)
+                {
+                    case Type.Int:
+                        datatype = 'I';
+                        break;
+                    case Type.Float:
+                        datatype = 'F';
+                        break;
+                    case Type.Bool:
+                        datatype = 'B';
+                        break;
+                    case Type.String:
+                        datatype = 'S';
+                        break;
+                    default:
+                        Errors.ReportError(context.Start, "Unknown type.");
+                        break;
+                }
+
+                if (identifierName != null)
+                {
+                    code += $"read {datatype}{identifierName}\n";
+                }
+                else
+                {
+                    //errors.Add("Couldn't read var.");
+                    Errors.ReportError(context.Start, "Couldn't read var.");
+                }
+            }
+            this.code.Put(context, code);
         }
 
         public override void ExitWrite([NotNull] grammarProjAParser.WriteContext context)
         {
-            base.ExitWrite(context);
+            string writeCode = string.Empty;
+            var exprs = context.expression();
+            int count = exprs.Length;
+            foreach (var expression in exprs)
+            {
+                writeCode += code.Get(expression);
+            }
+            writeCode += $"print {count}\n";
+            code.Put(context, writeCode);
         }
 
         public override void ExitBlock([NotNull] grammarProjAParser.BlockContext context)
         {
-            base.ExitBlock(context);
+            var statements = context.statement();
+            code.Put(context, string.Concat(statements.Select(s => code.Get(s))));
         }
 
         public override void ExitIfElse([NotNull] grammarProjAParser.IfElseContext context)
@@ -608,8 +921,23 @@ namespace antlr
             {
                 //errors.Add("If condition must be boolean.");
                 Errors.ReportError(context.Start, "If condition must be boolean.");
+                return;
             }
-            base.ExitIfElse(context);
+
+            int positiveEndLabel = Label.GetNextLabel();
+            int negativeLabel = Label.GetNextLabel();
+
+            string ifBranch = code.Get(context.iftrue);
+            string ifElseBranch = context.ifelse == null ? string.Empty : code.Get(context.ifelse);
+
+            code.Put(context, string.Concat(condition,
+                "fjmp ",
+                $"{negativeLabel}\n",
+                $"{ifBranch}\n",
+                $"jmp {positiveEndLabel}\n",
+                $"label {negativeLabel}\n",
+                $"{ifElseBranch}\n",
+                $"label {positiveEndLabel}\n"));
         }
 
         public override void ExitWhile([NotNull] grammarProjAParser.WhileContext context)
@@ -619,7 +947,21 @@ namespace antlr
             {
                 //errors.Add("If condition must be boolean.");
                 Errors.ReportError(context.Start, "While condition must be boolean.");
+                return;
             }
+
+            var startLabel = Label.GetNextLabel();
+            var endLabel = Label.GetNextLabel();
+
+            string statement =
+                $"{code.Get(context.statement())}\n";
+
+            code.Put(context, $"label {startLabel}\n" +
+                $"{condition}\n" +
+                $"fjmp {endLabel}\n" +
+                $"{statement}\n" +
+                $"jmp {startLabel}\n" +
+                $"label {endLabel}\n");
         }
 
         public override void ExitDoWhile([NotNull] grammarProjAParser.DoWhileContext context)
@@ -629,12 +971,37 @@ namespace antlr
             {
                 //errors.Add("If condition must be boolean.");
                 Errors.ReportError(context.Start, "Do while condition must be boolean.");
+                return;
             }
+
+            var startLabel = Label.GetNextLabel();
+            var endLabel = Label.GetNextLabel();
+
+            string statement =
+                $"{code.Get(context.statement())}\n";
+
+            code.Put(context, $"label {startLabel}\n" +
+                $"{statement}\n" +
+                $"{condition}\n" +
+                $"fjmp {endLabel}\n" +
+                $"jmp {startLabel}\n" +
+                $"label {endLabel}\n");
         }
 
         public override void ExitEval([NotNull] grammarProjAParser.EvalContext context)
         {
             base.ExitEval(context);
+        }
+
+        public override void ExitProgram([NotNull] grammarProjAParser.ProgramContext context)
+        {
+            string code = string.Empty;
+            foreach (var statement in context.statement())
+            {
+                code += this.code.Get(statement);
+            }
+            Console.Write(code);
+            File.WriteAllText("output.txt", code);
         }
     }
 }
