@@ -622,6 +622,16 @@ namespace antlr
             }
         }
 
+        public override void ExitDoWhile([NotNull] grammarProjAParser.DoWhileContext context)
+        {
+            var condition = values.Get(context.expression());
+            if (condition.type != Type.Bool)
+            {
+                //errors.Add("If condition must be boolean.");
+                Errors.ReportError(context.Start, "Do while condition must be boolean.");
+            }
+        }
+
         public override void ExitEval([NotNull] grammarProjAParser.EvalContext context)
         {
             base.ExitEval(context);

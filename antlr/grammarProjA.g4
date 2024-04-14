@@ -16,9 +16,11 @@ statement:
 	| '{' (statement)+ '}'								# block
 	| IF '(' expression ')' iftrue = statement (
 		ELSE ifelse = statement
-	)?										# ifElse
-	| WHILE '(' expression ')' statement	# while
-	| expression SEMICOLON					# eval;
+	)?										            # ifElse
+	| WHILE '(' expression ')' statement	            # while
+	| DO statement WHILE '(' expression ')' SEMICOLON   # doWhile
+	| expression SEMICOLON					            # eval
+	;
 
 expression:
 	'(' expression ')'									# exprParentheses
@@ -43,6 +45,7 @@ FLOAT_KEYWORD: 'float';
 BOOL_KEYWORD: 'bool';
 STRING_KEYWORD: 'string';
 WHILE: 'while';
+DO: 'do' ;
 IF: 'if';
 ELSE: 'else';
 WRITE: 'write';
@@ -55,13 +58,15 @@ IDENTIFIER: [a-zA-Z]+;
 INT: [0-9]+;
 FLOAT: [0-9]* '.' [0-9]+;
 
-STRING: '"' ( EscapeText | ~["\\])* '"';
+STRING: '"' ( ~["\\] | ESCAPE_SEQ)* '"';
 
-fragment EscapeText:
-	'\\' '"' // Escaped double quote
-	| '\\' '\\' // Escaped backslash
-	| '\\' 'n' // Newline
-	| '\\' 't'; // Tab
+fragment ESCAPE_SEQ:
+	'\\' '"'
+	| '\\' '\\'
+	| '\\' 'r' '\\' 'n'
+	| '\\' 'n'
+	| '\\' 't'
+	;
 
 // const symbols
 ASSIGN: '=';
