@@ -1,0 +1,7 @@
+int a;
+a = 2;
+do {
+	write "Ahoj";
+	write "Cusak";
+	a=a+a;
+} while (a == 2) ;
