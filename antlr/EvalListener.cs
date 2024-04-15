@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace antlr
 {
@@ -26,7 +27,8 @@ namespace antlr
         {
             if (value is int x) return (float)x;
             float outval;
-            if (float.TryParse(value.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out outval))
+
+            if (float.TryParse(value.ToString(), out outval))
             {
                 return outval;
             }
