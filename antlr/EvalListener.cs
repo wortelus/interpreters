@@ -127,7 +127,7 @@ namespace antlr
                             code.Put(context, string.Concat(
                                     $"{leftCode}\n",
                                     $"{rightCode}\n",
-                                    $"mul\n"
+                                    $"mul I\n"
                                 ));
                         }
                         // both floats
@@ -143,7 +143,7 @@ namespace antlr
                             code.Put(context, string.Concat(
                                     $"{leftCode}\n",
                                     $"{rightCode}\n",
-                                    $"mul\n"
+                                    $"mul F\n"
                                 ));
                         }
                         // one float, one int
@@ -170,7 +170,7 @@ namespace antlr
                                     $"{left}\n",
                                     $"itof\n",
                                     $"{right}\n",
-                                    "mul\n"
+                                    "mul F\n"
                                     ));
                             }
                             else
@@ -180,11 +180,11 @@ namespace antlr
                                     $"{left}\n",
                                     $"{right}\n",
                                     $"itof\n",
-                                    "mul\n"
+                                    "mul F\n"
                                     ));
                             }
 
-                            values.Put(context, (Type.Int, (float)a * b));
+                            values.Put(context, (Type.Float, (float)a * b));
                         }
                         else
                         {
@@ -208,7 +208,7 @@ namespace antlr
                             code.Put(context, string.Concat(
                                     $"{leftCode}\n",
                                     $"{rightCode}\n",
-                                    $"div\n"
+                                    $"div I\n"
                                 ));
                         }
                         // both floats
@@ -222,7 +222,7 @@ namespace antlr
                             code.Put(context, string.Concat(
                                 $"{leftCode}\n",
                                 $"{rightCode}\n",
-                                $"div\n"
+                                $"div F\n"
                                 ));
                         }
 
@@ -245,7 +245,7 @@ namespace antlr
                                     $"{leftCode}\n",
                                     $"itof\n",
                                     $"{rightCode}\n",
-                                    "div\n"
+                                    "div F\n"
                                     ));
                             }
                             else
@@ -255,7 +255,7 @@ namespace antlr
                                     $"{leftCode}\n",
                                     $"{rightCode}\n",
                                     $"itof\n",
-                                    "div\n"
+                                    "div F\n"
                                     ));
                             }
                         }
@@ -362,7 +362,7 @@ namespace antlr
                             code.Put(context, string.Concat(
                             $"{leftCode}\n",
                             $"{rightCode}\n",
-                            "add\n"
+                            "add I \n"
                          ));
                         }
                         // Both floats
@@ -378,7 +378,7 @@ namespace antlr
                             code.Put(context, string.Concat(
                                                     $"{leftCode}\n",
                                                     $"{rightCode}\n",
-                                                    "add\n"
+                                                    "add F\n"
                                                 ));
                         }
                         // One float, one int
@@ -401,7 +401,7 @@ namespace antlr
                                     $"{left}\n",
                                     $"itof\n",
                                     $"{right}\n",
-                                    "add\n"
+                                    "add F\n"
                                     ));
                             }
                             else
@@ -411,7 +411,7 @@ namespace antlr
                                     $"{left}\n",
                                     $"{right}\n",
                                     $"itof\n",
-                                    "add\n"
+                                    "add F\n"
                                     ));
                             }
 
@@ -446,7 +446,7 @@ namespace antlr
                             code.Put(context, string.Format(
                                 $"{left}\n",
                                 $"{right}\n",
-                                "sub\n"
+                                "sub I\n"
                                 ));
                         }
                         // Both floats
@@ -462,7 +462,7 @@ namespace antlr
                             code.Put(context, string.Format(
                                 $"{leftCode}\n",
                                 $"{rightCode}\n",
-                                "sub\n"
+                                "sub F\n"
                                 ));
                         }
                         // One float, one int
@@ -482,7 +482,7 @@ namespace antlr
                                     $"{left}\n",
                                     $"itof\n",
                                     $"{right}\n",
-                                    "sub\n"
+                                    "sub F\n"
                                     ));
                             }
                             else
@@ -492,7 +492,7 @@ namespace antlr
                                     $"{left}\n",
                                     $"{right}\n",
                                     $"itof\n",
-                                    "sub\n"
+                                    "sub F\n"
                                     ));
                             }
 
@@ -849,7 +849,9 @@ namespace antlr
             {
                 first = true;
                 rightCode = code.Get(context);
-                code.Put(context, rightCode + "pop\n");
+                code.Put(context, rightCode 
+                    // + "pop\n"
+                    );
             }
         }
 
@@ -1129,7 +1131,10 @@ namespace antlr
         public override void ExitEval([NotNull] grammarProjAParser.EvalContext context)
         {
             base.ExitEval(context);
-            code.Put(context, code.Get(context.expression()));
+            code.Put(context, 
+                $"{code.Get(context.expression())}\n" + 
+                $"pop\n"
+                );
         }
 
         public override void ExitProgram([NotNull] grammarProjAParser.ProgramContext context)
