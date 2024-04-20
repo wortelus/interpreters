@@ -1146,7 +1146,7 @@ namespace antlr
             {
                 code += this.code.Get(statement);
             }
-            Console.Write(code);
+            // Console.Write(code);
             File.WriteAllText("output.txt", code);
         }
     }

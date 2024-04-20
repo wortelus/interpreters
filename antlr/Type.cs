@@ -73,6 +73,23 @@ namespace antlr
             }
         }
 
+        public static Type FromChar(this char type)
+        {
+            switch (type)
+            {
+                case 'I':
+                    return Type.Int;
+                case 'F':
+                    return Type.Float;
+                case 'B':
+                    return Type.Bool;
+                case 'S':
+                    return Type.String;
+                default:
+                    return Type.Unknown;
+            }
+        }
+
         public static Type FromString(this string value)
         {
             switch (value)

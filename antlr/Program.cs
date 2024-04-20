@@ -37,6 +37,12 @@ namespace antlr
                 walker.Walk(new EvalListener(), tree);
 
                 Errors.PrintAndClearErrors();
+
+                string code = File.ReadAllText("output.txt");
+
+                Interpreter interpreter = new Interpreter(code);
+                interpreter.Run();
+
             } 
             else
             {
